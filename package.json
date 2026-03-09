@@ -1,10 +1,12 @@
 {
-  "name": "chrome-extension",
+  "name": "page-modifier",
   "module": "index.ts",
   "type": "module",
-  "private": true,
+  "bin": {
+    "page-modifier": "./bin/start.cjs"
+  },
   "scripts": {
-    "server": "bun run index.ts"
+    "server": "bun run server/index.ts"
   },
   "devDependencies": {
     "@types/bun": "latest"

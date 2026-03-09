@@ -60,41 +60,84 @@
     .url-current {
       font-size: 11px;
       color: var(--text-dim);
-      margin-bottom: 6px;
+      margin-bottom: 10px;
       word-break: break-all;
-      padding: 7px 9px;
+      line-height: 1.4;
+    }
+    .url-slider-container {
+      padding: 8px 9px 10px;
       background: var(--surface);
-      border-radius: var(--radius);
       border: 1px solid var(--border);
-      line-height: 1.5;
+      border-radius: var(--radius);
     }
-    .url-patterns {
-      display: flex;
-      flex-direction: column;
-      gap: 3px;
+    .url-slider-container.inactive {
+      opacity: 0.4;
+      pointer-events: none;
     }
-    .url-pattern {
+    .url-slider-labels {
       display: flex;
-      align-items: center;
-      gap: 8px;
+      justify-content: space-between;
+      font-size: 10px;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+    }
+    .url-slider-preview {
+      font-size: 11px;
+      color: var(--accent);
+      font-family: "SF Mono", Menlo, Consolas, monospace;
+      word-break: break-all;
+      margin-top: 6px;
+      line-height: 1.4;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg);
+    }
+    input[type="range"]::-moz-range-thumb {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--accent);
+      cursor: pointer;
+      border: 2px solid var(--bg);
+    }
+    .url-alt-options {
+      display: flex;
+      gap: 4px;
+      margin-top: 6px;
+    }
+    .url-alt-option {
+      flex: 1;
       padding: 6px 9px;
       border-radius: var(--radius);
       cursor: pointer;
       border: 1px solid var(--border);
       background: var(--surface);
       transition: border-color 0.12s;
-    }
-    .url-pattern:hover { border-color: #333; }
-    .url-pattern.selected {
-      border-color: var(--accent);
-      background: var(--accent-subtle);
-    }
-    .url-pattern input[type="radio"] { accent-color: var(--accent); }
-    .url-pattern code {
+      text-align: center;
       font-size: 11px;
       color: var(--text);
-      word-break: break-all;
-      font-family: "SF Mono", Menlo, Consolas, monospace;
+    }
+    .url-alt-option:hover { border-color: #333; }
+    .url-alt-option.selected {
+      border-color: var(--accent);
+      background: var(--accent-subtle);
     }
     .custom-pattern {
       width: 100%;
@@ -200,6 +243,12 @@
       transition: all 0.12s;
     }
     .rule-actions button:hover { color: var(--danger); background: #1e1010; }
+    .offline-msg {
+      font-size: 12px;
+      color: var(--text-dim);
+      text-align: center;
+      padding: 24px 16px;
+    }
     .empty-rules {
       font-size: 11px;
       color: var(--text-muted);
@@ -212,29 +261,43 @@
   <div class="container">
     <h1>Page Modifier</h1>
 
-    <div class="field">
-      <label>Current URL</label>
+    <div id="offlineView" style="display:none;">
+      <div class="offline-msg">Server is not running. Start the server and reopen the extension.</div>
+    </div>
+
+    <div id="mainForm">
       <div class="url-current" id="currentUrl">Loading...</div>
-    </div>
 
-    <div class="field">
-      <label>URL Pattern</label>
-      <div class="url-patterns" id="urlPatterns"></div>
-      <input type="text" class="custom-pattern" id="customPattern" placeholder="Custom regex, e.g. https://x\\.com/.*">
-      <input type="text" class="custom-pattern" id="promptPattern" placeholder="e.g. GitHub repo pages, YouTube video pages...">
-    </div>
+      <div class="field">
+        <label>Prompt</label>
+        <textarea id="prompt" placeholder="e.g. Make the background dark, increase font size, hide the sidebar..."></textarea>
+      </div>
 
-    <div class="field">
-      <label>Prompt</label>
-      <textarea id="prompt" placeholder="e.g. Make the background dark, increase font size, hide the sidebar..."></textarea>
-    </div>
+      <div class="field">
+        <label>URL Pattern</label>
+        <div class="url-slider-container" id="sliderContainer">
+          <div class="url-slider-labels">
+            <span>/</span>
+            <span>exact url</span>
+          </div>
+          <input type="range" id="urlSlider" min="0" max="1" value="1" step="1">
+          <div class="url-slider-preview" id="sliderPreview"></div>
+        </div>
+        <div class="url-alt-options">
+          <div class="url-alt-option" id="optPrompt">Describe matching pages</div>
+          <div class="url-alt-option" id="optCustom">Enter pattern manually</div>
+        </div>
+        <input type="text" class="custom-pattern" id="customPattern" placeholder="Custom regex, e.g. https://x\\.com/.*">
+        <input type="text" class="custom-pattern" id="promptPattern" placeholder="e.g. GitHub repo pages, YouTube video pages...">
+      </div>
 
-    <button class="primary" id="submit">Apply Modification</button>
-    <div class="status" id="status"></div>
+      <button class="primary" id="submit">Apply Modification</button>
+      <div class="status" id="status"></div>
 
-    <div class="saved-rules">
-      <h2>Saved Rules</h2>
-      <div id="rulesList"></div>
+      <div class="saved-rules">
+        <h2>Saved Rules</h2>
+        <div id="rulesList"></div>
+      </div>
     </div>
   </div>
   <script src="popup.js"></script>

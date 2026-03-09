@@ -1,80 +1,79 @@
-// Generate URL pattern suggestions from a URL
-function generatePatterns(url) {
-  const patterns = [];
+// Generate slider stops from a URL (from broadest to most specific)
+function generateSliderStops(url) {
+  const stops = [];
   try {
     const u = new URL(url);
     const pathParts = u.pathname.split("/").filter(Boolean);
 
-    // Exact URL (without query/hash)
-    patterns.push({
-      label: "Exact URL",
-      pattern: `${u.origin}${u.pathname}`,
+    // Broadest: entire domain
+    stops.push({
+      label: `${u.host}/*`,
+      pattern: `${u.origin}/*`,
     });
 
-    // Progressive wildcards from deepest to shallowest
-    for (let i = pathParts.length - 1; i >= 1; i--) {
+    // Progressive paths from shallowest to deepest
+    for (let i = 1; i < pathParts.length; i++) {
       const base = pathParts.slice(0, i).join("/");
-      patterns.push({
+      stops.push({
         label: `${u.host}/${base}/*`,
         pattern: `${u.origin}/${base}/*`,
       });
     }
 
-    // Entire domain
-    patterns.push({
-      label: `${u.host}/*`,
-      pattern: `${u.origin}/*`,
-    });
-
-    // Describe with prompt
-    patterns.push({
-      label: "Describe pages (AI generates regex)",
-      pattern: "prompt",
-    });
-
-    // Custom regex
-    patterns.push({
-      label: "Custom regex",
-      pattern: "custom",
+    // Most specific: exact URL
+    stops.push({
+      label: "Exact URL",
+      pattern: `${u.origin}${u.pathname}`,
     });
   } catch {
-    patterns.push({ label: "Custom regex", pattern: "custom" });
+    stops.push({ label: url, pattern: url });
   }
-  return patterns;
+  return stops;
 }
 
-// Render URL pattern radio buttons
-function renderPatterns(patterns) {
-  const container = document.getElementById("urlPatterns");
-  container.innerHTML = "";
-  patterns.forEach((p, i) => {
-    const div = document.createElement("div");
-    div.className = "url-pattern" + (i === 0 ? " selected" : "");
-    div.innerHTML = `
-      <input type="radio" name="urlPattern" value="${p.pattern}" ${i === 0 ? "checked" : ""}>
-      <code>${p.label}</code>
-    `;
-    div.addEventListener("click", () => {
-      document.querySelectorAll(".url-pattern").forEach((el) => el.classList.remove("selected"));
-      div.classList.add("selected");
-      div.querySelector("input").checked = true;
-      const customInput = document.getElementById("customPattern");
-      const promptInput = document.getElementById("promptPattern");
-      if (p.pattern === "custom") {
-        customInput.classList.add("visible");
-        promptInput.classList.remove("visible");
-        customInput.focus();
-      } else if (p.pattern === "prompt") {
-        promptInput.classList.add("visible");
-        customInput.classList.remove("visible");
-        promptInput.focus();
-      } else {
-        customInput.classList.remove("visible");
-        promptInput.classList.remove("visible");
-      }
-    });
-    container.appendChild(div);
+// Current state
+let sliderStops = [];
+let selectedMode = "slider"; // "slider" | "custom" | "prompt"
+
+// Render slider with stops
+function renderSlider(stops) {
+  sliderStops = stops;
+  const slider = document.getElementById("urlSlider");
+  const preview = document.getElementById("sliderPreview");
+
+  slider.min = 0;
+  slider.max = stops.length - 1;
+  slider.value = stops.length - 1; // default to exact URL
+  slider.step = 1;
+
+  preview.textContent = stops[stops.length - 1].pattern;
+
+  slider.addEventListener("input", () => {
+    preview.textContent = stops[slider.value].pattern;
+    // When slider is used, ensure slider mode is active
+    if (selectedMode !== "slider") {
+      selectMode("slider");
+    }
   });
+}
+
+function selectMode(mode) {
+  selectedMode = mode;
+  const sliderContainer = document.getElementById("sliderContainer");
+  const optPrompt = document.getElementById("optPrompt");
+  const optCustom = document.getElementById("optCustom");
+  const customInput = document.getElementById("customPattern");
+  const promptInput = document.getElementById("promptPattern");
+
+  sliderContainer.classList.toggle("inactive", mode !== "slider");
+  optPrompt.classList.toggle("selected", mode === "prompt");
+  optCustom.classList.toggle("selected", mode === "custom");
+
+  customInput.classList.toggle("visible", mode === "custom");
+  promptInput.classList.toggle("visible", mode === "prompt");
+
+  if (mode === "custom") customInput.focus();
+  if (mode === "prompt") promptInput.focus();
 }
 
 // Load and display saved rules
@@ -125,15 +124,15 @@ function setStatus(msg, type = "") {
 
 // Get selected pattern value
 function getSelectedPattern() {
-  const selected = document.querySelector('input[name="urlPattern"]:checked');
-  if (!selected) return null;
-  if (selected.value === "custom") {
+  if (selectedMode === "custom") {
     return document.getElementById("customPattern").value.trim();
   }
-  if (selected.value === "prompt") {
-    return "prompt"; // signal that we need to generate it
+  if (selectedMode === "prompt") {
+    return "prompt";
   }
-  return selected.value;
+  // Slider mode
+  const slider = document.getElementById("urlSlider");
+  return sliderStops[slider.value]?.pattern || null;
 }
 
 // Generate a regex pattern from a natural language description
@@ -153,6 +152,16 @@ async function generatePatternFromPrompt(description, currentUrl) {
 
 // Initialize popup
 async function init() {
+  // Healthcheck — hide form if server is down
+  try {
+    const res = await fetch("http://localhost:3456/health", { signal: AbortSignal.timeout(2000) });
+    if (!res.ok) throw new Error();
+  } catch {
+    document.getElementById("mainForm").style.display = "none";
+    document.getElementById("offlineView").style.display = "block";
+    return;
+  }
+
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab?.url) {
     document.getElementById("currentUrl").textContent = "No URL available";
@@ -160,9 +169,20 @@ async function init() {
   }
 
   document.getElementById("currentUrl").textContent = tab.url;
-  const patterns = generatePatterns(tab.url);
-  renderPatterns(patterns);
+  const stops = generateSliderStops(tab.url);
+  renderSlider(stops);
   loadRules();
+
+  // Alt option click handlers
+  document.getElementById("optPrompt").addEventListener("click", () => {
+    selectMode(selectedMode === "prompt" ? "slider" : "prompt");
+  });
+  document.getElementById("optCustom").addEventListener("click", () => {
+    selectMode(selectedMode === "custom" ? "slider" : "custom");
+  });
+  document.getElementById("sliderContainer").addEventListener("click", () => {
+    if (selectedMode !== "slider") selectMode("slider");
+  });
 
   // Submit handler
   document.getElementById("submit").addEventListener("click", async () => {
