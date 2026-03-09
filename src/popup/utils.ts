@@ -1,4 +1,4 @@
-import type { SliderStop } from "./types";
+import type { Rule, SliderStop } from "./types";
 
 export function generateSliderStops(url: string): SliderStop[] {
   const stops: SliderStop[] = [];
@@ -66,11 +66,11 @@ export async function getCurrentTab(): Promise<chrome.tabs.Tab | null> {
 }
 
 export async function getPageContent(tabId: number): Promise<string> {
-  const [{ result: pageContent }] = await chrome.scripting.executeScript({
+  const results = await chrome.scripting.executeScript({
     target: { tabId },
     func: () => document.documentElement.outerHTML,
   });
-  return pageContent;
+  return results[0]?.result ?? "";
 }
 
 export async function applyModification(
@@ -113,7 +113,7 @@ export async function saveRule(rule: {
   await chrome.storage.local.set({ rules });
 }
 
-export async function getRules(): Promise<any[]> {
+export async function getRules(): Promise<Rule[]> {
   const { rules = [] } = await chrome.storage.local.get("rules");
   return rules;
 }

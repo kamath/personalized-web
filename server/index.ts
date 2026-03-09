@@ -11,8 +11,6 @@ app.use("/*", cors({ origin: "*" }));
 const AGENT_COMMAND = process.env.AGENT || "claude-agent-acp";
 
 // Manage ACP connections
-let connection: acp.ClientSideConnection | null = null;
-let sessionId: string | null = null;
 let agentProcess: ReturnType<typeof spawn> | null = null;
 
 class PageModifierClient implements acp.Client {
@@ -55,13 +53,17 @@ class PageModifierClient implements acp.Client {
       case "plan":
         console.log(`${tag} plan: ${JSON.stringify(update)}`);
         break;
-      case "agent_thought_chunk":
-        if ("content" in update && (update as any).content?.type === "text") {
-          console.log(`${tag} thought: ${(update as any).content.text}`);
+      case "agent_thought_chunk": {
+        const content = "content" in update
+          ? (update as { content: { type: string; text: string } }).content
+          : null;
+        if (content?.type === "text") {
+          console.log(`${tag} thought: ${content.text}`);
         } else {
           console.log(`${tag} thought chunk`);
         }
         break;
+      }
       default:
         console.log(`${tag} ${update.sessionUpdate}: ${JSON.stringify(update).slice(0, 200)}`);
         break;
@@ -85,7 +87,7 @@ async function ensureConnection(): Promise<{
   const stream = acp.ndJsonStream(input, output);
 
   const client = new PageModifierClient();
-  const conn = new acp.ClientSideConnection((_agent) => client, stream);
+  const conn = new acp.ClientSideConnection(() => client, stream);
 
   const initResult = await conn.initialize({
     protocolVersion: acp.PROTOCOL_VERSION,
@@ -133,12 +135,10 @@ app.post("/api/generate-pattern", async (c) => {
   console.log(`[Server] Generate pattern for: ${body.description}`);
   console.log(`[Server] Current URL: ${body.currentUrl}`);
 
-  let conn: acp.ClientSideConnection | undefined;
   let proc: ReturnType<typeof spawn> | undefined;
 
   try {
     const result = await ensureConnection();
-    conn = result.connection;
     proc = agentProcess!;
 
     const promptText = `You are a URL pattern generator. Given a description of what web pages should match and an example URL, generate a glob-style URL pattern.
@@ -195,12 +195,10 @@ app.post("/api/modify", async (c) => {
   console.log(`[Server] Pattern: ${body.urlPattern}`);
   console.log(`[Server] Prompt: ${body.prompt}`);
 
-  let conn: acp.ClientSideConnection | undefined;
   let proc: ReturnType<typeof spawn> | undefined;
 
   try {
     const result = await ensureConnection();
-    conn = result.connection;
     proc = agentProcess!;
 
     const systemPrompt = `You are a web page modifier. The user wants to modify a web page.

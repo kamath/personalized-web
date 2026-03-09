@@ -109,8 +109,8 @@ export default function App() {
         try {
           urlPattern = await generatePatternFromPrompt(desc, currentUrl);
           setStatus({ msg: `Generated pattern: ${urlPattern}`, type: "loading" });
-        } catch (err: any) {
-          setStatus({ msg: err.message, type: "error" });
+        } catch (err) {
+          setStatus({ msg: err instanceof Error ? err.message : String(err), type: "error" });
           return;
         }
       }
@@ -156,8 +156,8 @@ export default function App() {
       setPromptPattern("");
       setMode("slider");
       setSliderValue(sliderStops.length - 1);
-    } catch (err: any) {
-      setStatus({ msg: err.message, type: "error" });
+    } catch (err) {
+      setStatus({ msg: err instanceof Error ? err.message : String(err), type: "error" });
     } finally {
       setIsSubmitting(false);
     }
