@@ -6,16 +6,26 @@
     "page-modifier": "./bin/start.cjs"
   },
   "scripts": {
-    "server": "bun run server/index.ts"
+    "server": "bun run server/index.ts",
+    "build:popup": "vite build",
+    "dev:popup": "vite",
+    "build:extension": "vite build && cp extension/manifest.json extension/content.js extension/background.js dist/"
   },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/chrome": "^0.1.37",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitejs/plugin-react": "^5",
+    "vite": "^6"
   },
   "peerDependencies": {
     "typescript": "^5"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.15.0",
-    "hono": "^4.12.5"
+    "hono": "^4.12.5",
+    "react": "^19",
+    "react-dom": "^19"
   }
 }
