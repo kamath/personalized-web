@@ -12,11 +12,14 @@
     "build:extension": "vite build && cp extension/manifest.json extension/content.js extension/background.js dist/"
   },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.2.1",
     "@types/bun": "latest",
     "@types/chrome": "^0.1.37",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitejs/plugin-react": "^5",
+    "autoprefixer": "^10.4.27",
+    "postcss": "^8.5.8",
     "vite": "^6"
   },
   "peerDependencies": {
