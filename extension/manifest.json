@@ -1,0 +1,22 @@
+{
+  "manifest_version": 3,
+  "name": "Page Modifier",
+  "version": "1.0.0",
+  "description": "Send prompts to Claude to modify web pages via ACP",
+  "permissions": ["activeTab", "storage", "scripting"],
+  "host_permissions": ["http://localhost:3456/*"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "Page Modifier"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

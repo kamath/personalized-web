@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      color: #e0e0e0;
+      background: #1a1a2e;
+    }
+    .container { padding: 16px; }
+    h1 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #fff;
+    }
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 500;
+      color: #a0a0b0;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .field { margin-bottom: 12px; }
+    .url-current {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+      word-break: break-all;
+      padding: 6px 8px;
+      background: #16213e;
+      border-radius: 6px;
+      border: 1px solid #2a2a4a;
+    }
+    .url-patterns {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .url-pattern {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 8px;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid #2a2a4a;
+      background: #16213e;
+      transition: all 0.15s;
+    }
+    .url-pattern:hover { border-color: #4a4a6a; }
+    .url-pattern.selected {
+      border-color: #6c63ff;
+      background: #1e1e3f;
+    }
+    .url-pattern input[type="radio"] { accent-color: #6c63ff; }
+    .url-pattern code {
+      font-size: 11px;
+      color: #c0c0d0;
+      word-break: break-all;
+    }
+    .custom-pattern {
+      width: 100%;
+      padding: 8px;
+      background: #16213e;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-family: monospace;
+      font-size: 12px;
+      margin-top: 4px;
+      display: none;
+    }
+    .custom-pattern:focus { outline: none; border-color: #6c63ff; }
+    .custom-pattern.visible { display: block; }
+    textarea {
+      width: 100%;
+      min-height: 80px;
+      padding: 8px;
+      background: #16213e;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      color: #e0e0e0;
+      font-family: inherit;
+      font-size: 13px;
+      resize: vertical;
+    }
+    textarea:focus { outline: none; border-color: #6c63ff; }
+    textarea::placeholder { color: #555; }
+    button.primary {
+      width: 100%;
+      padding: 10px;
+      background: #6c63ff;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    button.primary:hover { background: #5a52e0; }
+    button.primary:disabled { background: #3a3a5a; cursor: not-allowed; }
+    .status {
+      margin-top: 8px;
+      font-size: 12px;
+      color: #888;
+      min-height: 18px;
+    }
+    .status.error { color: #ff6b6b; }
+    .status.success { color: #51cf66; }
+    .status.loading { color: #ffd43b; }
+    .saved-rules {
+      margin-top: 12px;
+      border-top: 1px solid #2a2a4a;
+      padding-top: 12px;
+    }
+    .saved-rules h2 {
+      font-size: 12px;
+      color: #a0a0b0;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .rule-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 6px 8px;
+      background: #16213e;
+      border: 1px solid #2a2a4a;
+      border-radius: 6px;
+      margin-bottom: 4px;
+    }
+    .rule-info {
+      flex: 1;
+      min-width: 0;
+    }
+    .rule-pattern {
+      font-family: monospace;
+      font-size: 11px;
+      color: #6c63ff;
+    }
+    .rule-prompt {
+      font-size: 11px;
+      color: #888;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .rule-actions { display: flex; gap: 4px; }
+    .rule-actions button {
+      background: none;
+      border: none;
+      color: #888;
+      cursor: pointer;
+      font-size: 14px;
+      padding: 2px 4px;
+    }
+    .rule-actions button:hover { color: #ff6b6b; }
+    .empty-rules {
+      font-size: 12px;
+      color: #555;
+      text-align: center;
+      padding: 8px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Page Modifier</h1>
+
+    <div class="field">
+      <label>Current URL</label>
+      <div class="url-current" id="currentUrl">Loading...</div>
+    </div>
+
+    <div class="field">
+      <label>URL Pattern</label>
+      <div class="url-patterns" id="urlPatterns"></div>
+      <input type="text" class="custom-pattern" id="customPattern" placeholder="Custom regex, e.g. https://x\\.com/.*">
+    </div>
+
+    <div class="field">
+      <label>Prompt</label>
+      <textarea id="prompt" placeholder="e.g. Make the background dark, increase font size, hide the sidebar..."></textarea>
+    </div>
+
+    <button class="primary" id="submit">Apply Modification</button>
+    <div class="status" id="status"></div>
+
+    <div class="saved-rules">
+      <h2>Saved Rules</h2>
+      <div id="rulesList"></div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>

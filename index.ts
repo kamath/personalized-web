@@ -1,1 +1,1 @@
-console.log("Hello via Bun!");
+export { default } from "./server/index.ts";
