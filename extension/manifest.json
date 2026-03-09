@@ -3,7 +3,7 @@
   "name": "Page Modifier",
   "version": "1.0.0",
   "description": "Send prompts to Claude to modify web pages via ACP",
-  "permissions": ["activeTab", "storage", "scripting"],
+  "permissions": ["activeTab", "storage", "scripting", "contextMenus"],
   "host_permissions": ["http://localhost:3456/*"],
   "action": {
     "default_popup": "popup.html",

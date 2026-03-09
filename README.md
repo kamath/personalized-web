@@ -1,5 +1,7 @@
 # Page Modifier
 
+> ⚠️ **This project is in very early stages.** Expect breaking changes, bugs, and incomplete features. Not recommended for production use.
+
 A Chrome extension that uses AI to modify web pages on-demand. Write a prompt, and an AI coding agent generates CSS/JS that gets injected into the page. Rules are saved and automatically re-applied when you revisit matching URLs.
 
 ## Prerequisites

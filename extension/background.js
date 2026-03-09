@@ -1,3 +1,21 @@
+// Create context menu item for selected text
+chrome.runtime.onInstalled.addListener(() => {
+  chrome.contextMenus.create({
+    id: "hello-alert",
+    title: 'Say Hello',
+    contexts: ["selection"],
+  });
+});
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  if (info.menuItemId === "hello-alert") {
+    chrome.scripting.executeScript({
+      target: { tabId: tab.id },
+      func: () => alert("hello"),
+    });
+  }
+});
+
 // Background service worker: re-applies rules when tabs navigate
 chrome.tabs.onUpdated.addListener(async (tabId, changeInfo, tab) => {
   if (changeInfo.status !== "complete" || !tab.url) return;
