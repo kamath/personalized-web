@@ -1,3 +1,8 @@
+// Open sidebar when extension icon is clicked
+chrome.action.onClicked.addListener(async (tab) => {
+  await chrome.sidePanel.open({ tabId: tab.id });
+});
+
 // Create context menu item for selected text
 chrome.runtime.onInstalled.addListener(() => {
   chrome.contextMenus.create({

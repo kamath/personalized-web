@@ -10,7 +10,10 @@ export default defineConfig({
     outDir: resolve(__dirname, "dist"),
     emptyOutDir: true,
     rollupOptions: {
-      input: resolve(__dirname, "src/popup/popup.html"),
+      input: {
+        popup: resolve(__dirname, "src/popup/popup.html"),
+        sidebar: resolve(__dirname, "src/popup/sidebar.html"),
+      },
       output: {
         entryFileNames: "assets/[name].js",
         chunkFileNames: "assets/[name].js",
