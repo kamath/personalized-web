@@ -1,5 +1,5 @@
 import React from "react";
-import { Rule } from "../types";
+import type { Rule } from "../types";
 import { escapeHtml } from "../utils";
 
 interface SavedRulesProps {

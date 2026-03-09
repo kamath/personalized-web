@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { UrlPatternField } from "./components/UrlPatternField";
 import { SavedRules } from "./components/SavedRules";
 import {
@@ -13,11 +14,10 @@ import {
   modifyPageViaServer,
   generatePatternFromPrompt,
 } from "./utils";
-import { PatternMode, SliderStop, Rule, StatusMessage } from "./types";
+import type { PatternMode, SliderStop, Rule, StatusMessage } from "./types";
 import "./popup.css";
 
 export default function App() {
-  const [isServerHealthy, setIsServerHealthy] = useState(true);
   const [currentUrl, setCurrentUrl] = useState("Loading...");
   const [prompt, setPrompt] = useState("");
   const [mode, setMode] = useState<PatternMode>("slider");
@@ -33,17 +33,18 @@ export default function App() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentTab, setCurrentTab] = useState<chrome.tabs.Tab | null>(null);
 
-  // Initialize on mount
+  // Poll server health every 3 seconds
+  const { data: isServerHealthy = false } = useQuery({
+    queryKey: ["serverHealth"],
+    queryFn: checkServerHealth,
+    refetchInterval: 3000,
+  });
+
+  // Initialize tab & rules when server becomes healthy
   useEffect(() => {
+    if (!isServerHealthy) return;
+
     const init = async () => {
-      // Check server health
-      const healthy = await checkServerHealth();
-      setIsServerHealthy(healthy);
-
-      if (!healthy) {
-        return;
-      }
-
       // Get current tab
       const tab = await getCurrentTab();
       if (!tab?.url) {
@@ -65,7 +66,7 @@ export default function App() {
     };
 
     init();
-  }, []);
+  }, [isServerHealthy]);
 
   const getSelectedPattern = (): string | null => {
     if (mode === "custom") {
@@ -173,7 +174,7 @@ export default function App() {
       <div className="container">
         <h1>Page Modifier</h1>
         <div className="offline-msg">
-          Server is not running. Start the server and reopen the extension.
+          Server is not running. Start the server and this will connect automatically.
         </div>
       </div>
     );

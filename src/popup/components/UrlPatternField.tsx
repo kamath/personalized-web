@@ -1,5 +1,5 @@
 import React from "react";
-import { SliderStop, PatternMode } from "../types";
+import type { SliderStop, PatternMode } from "../types";
 
 interface UrlPatternFieldProps {
   mode: PatternMode;

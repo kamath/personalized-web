@@ -1,4 +1,4 @@
-import { SliderStop } from "./types";
+import type { SliderStop } from "./types";
 
 export function generateSliderStops(url: string): SliderStop[] {
   const stops: SliderStop[] = [];
