@@ -14,6 +14,14 @@ export default tseslint.config(
       ...reactHooks.configs.recommended.rules,
     },
   },
+  {
+    rules: {
+      "@typescript-eslint/consistent-type-assertions": [
+        "error",
+        { assertionStyle: "never" },
+      ],
+    },
+  },
   prettier,
   {
     ignores: ["dist/", "node_modules/", "extension/*.js", "bin/"],

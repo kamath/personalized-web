@@ -25,9 +25,9 @@ class PageModifierClient implements acp.Client {
     console.log(`  options: ${params.options.map(o => `${o.name} (${o.kind})`).join(", ")}`);
     // Auto-approve all permissions since this is a local tool
     const allowOption = params.options.find(
-      (o) => o.kind === "allow" || o.kind === "always_allow"
+      (o) => o.kind === "allow_once" || o.kind === "allow_always"
     );
-    const chosen = allowOption ?? params.options[0];
+    const chosen = allowOption ?? params.options[0]!;
     console.log(`  -> auto-selecting: ${chosen.name} (${chosen.kind})`);
     return { outcome: { outcome: "selected", optionId: chosen.optionId } };
   }
@@ -54,10 +54,10 @@ class PageModifierClient implements acp.Client {
         console.log(`${tag} plan: ${JSON.stringify(update)}`);
         break;
       case "agent_thought_chunk": {
-        const content = "content" in update
-          ? (update as { content: { type: string; text: string } }).content
+        const content = "content" in update && update.content && typeof update.content === "object" && "type" in update.content && "text" in update.content
+          ? update.content
           : null;
-        if (content?.type === "text") {
+        if (content && content.type === "text") {
           console.log(`${tag} thought: ${content.text}`);
         } else {
           console.log(`${tag} thought chunk`);
@@ -83,7 +83,8 @@ async function ensureConnection(): Promise<{
   });
 
   const input = Writable.toWeb(claudeProcess.stdin!);
-  const output = Readable.toWeb(claudeProcess.stdout!);
+  // @ts-expect-error Readable.toWeb returns ReadableStream<any> but ndJsonStream expects ReadableStream<Uint8Array>
+  const output: ReadableStream<Uint8Array> = Readable.toWeb(claudeProcess.stdout!);
   const stream = acp.ndJsonStream(input, output);
 
   const client = new PageModifierClient();
@@ -114,13 +115,13 @@ function extractModifications(text: string): { css: string; js: string } {
   // Extract CSS blocks
   const cssMatches = text.matchAll(/```css\n([\s\S]*?)```/g);
   for (const match of cssMatches) {
-    css += match[1].trim() + "\n";
+    if (match[1]) css += match[1].trim() + "\n";
   }
 
   // Extract JS blocks
   const jsMatches = text.matchAll(/```(?:js|javascript)\n([\s\S]*?)```/g);
   for (const match of jsMatches) {
-    js += match[1].trim() + "\n";
+    if (match[1]) js += match[1].trim() + "\n";
   }
 
   return { css: css.trim(), js: js.trim() };
@@ -165,7 +166,7 @@ Description of pages to match: ${body.description}`;
     // Clean up if the model wrapped it in backticks or quotes
     pattern = pattern.replace(/^[`"']+|[`"']+$/g, "").trim();
     // Take just the first line if multiple lines returned
-    pattern = pattern.split("\n")[0].trim();
+    pattern = (pattern.split("\n")[0] ?? pattern).trim();
 
     console.log(`[Server] Generated pattern: ${pattern}`);
 

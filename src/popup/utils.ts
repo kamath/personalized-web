@@ -105,7 +105,8 @@ export async function saveRule(rule: {
   css?: string;
   js?: string;
 }): Promise<void> {
-  const { rules = [] } = await chrome.storage.local.get("rules");
+  const result = await chrome.storage.local.get("rules");
+  const rules: Rule[] = Array.isArray(result.rules) ? result.rules : [];
   rules.push({
     ...rule,
     createdAt: Date.now(),
@@ -114,12 +115,13 @@ export async function saveRule(rule: {
 }
 
 export async function getRules(): Promise<Rule[]> {
-  const { rules = [] } = await chrome.storage.local.get("rules");
-  return rules;
+  const result = await chrome.storage.local.get("rules");
+  return Array.isArray(result.rules) ? result.rules : [];
 }
 
 export async function deleteRule(index: number): Promise<void> {
-  const { rules = [] } = await chrome.storage.local.get("rules");
+  const result = await chrome.storage.local.get("rules");
+  const rules: Rule[] = Array.isArray(result.rules) ? result.rules : [];
   rules.splice(index, 1);
   await chrome.storage.local.set({ rules });
 }
