@@ -26,6 +26,12 @@ function generatePatterns(url) {
       pattern: `${u.origin}/*`,
     });
 
+    // Describe with prompt
+    patterns.push({
+      label: "Describe pages (AI generates regex)",
+      pattern: "prompt",
+    });
+
     // Custom regex
     patterns.push({
       label: "Custom regex",
@@ -53,11 +59,18 @@ function renderPatterns(patterns) {
       div.classList.add("selected");
       div.querySelector("input").checked = true;
       const customInput = document.getElementById("customPattern");
+      const promptInput = document.getElementById("promptPattern");
       if (p.pattern === "custom") {
         customInput.classList.add("visible");
+        promptInput.classList.remove("visible");
         customInput.focus();
+      } else if (p.pattern === "prompt") {
+        promptInput.classList.add("visible");
+        customInput.classList.remove("visible");
+        promptInput.focus();
       } else {
         customInput.classList.remove("visible");
+        promptInput.classList.remove("visible");
       }
     });
     container.appendChild(div);
@@ -117,7 +130,25 @@ function getSelectedPattern() {
   if (selected.value === "custom") {
     return document.getElementById("customPattern").value.trim();
   }
+  if (selected.value === "prompt") {
+    return "prompt"; // signal that we need to generate it
+  }
   return selected.value;
+}
+
+// Generate a regex pattern from a natural language description
+async function generatePatternFromPrompt(description, currentUrl) {
+  const response = await fetch("http://localhost:3456/api/generate-pattern", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ description, currentUrl }),
+  });
+  if (!response.ok) {
+    const err = await response.text();
+    throw new Error(err || `Server error ${response.status}`);
+  }
+  const data = await response.json();
+  return data.pattern;
 }
 
 // Initialize popup
@@ -136,7 +167,7 @@ async function init() {
   // Submit handler
   document.getElementById("submit").addEventListener("click", async () => {
     const prompt = document.getElementById("prompt").value.trim();
-    const urlPattern = getSelectedPattern();
+    let urlPattern = getSelectedPattern();
 
     if (!prompt) {
       setStatus("Please enter a prompt", "error");
@@ -146,9 +177,31 @@ async function init() {
       setStatus("Please select or enter a URL pattern", "error");
       return;
     }
+    if (urlPattern === "prompt") {
+      const desc = document.getElementById("promptPattern").value.trim();
+      if (!desc) {
+        setStatus("Please describe which pages to match", "error");
+        return;
+      }
+    }
 
     const submitBtn = document.getElementById("submit");
     submitBtn.disabled = true;
+
+    // If "prompt" mode, generate the regex first
+    if (urlPattern === "prompt") {
+      const desc = document.getElementById("promptPattern").value.trim();
+      setStatus("Generating URL pattern from description...", "loading");
+      try {
+        urlPattern = await generatePatternFromPrompt(desc, tab.url);
+        setStatus(`Generated pattern: ${urlPattern}`, "loading");
+      } catch (err) {
+        setStatus(err.message, "error");
+        submitBtn.disabled = false;
+        return;
+      }
+    }
+
     setStatus("Sending to Claude via ACP...", "loading");
 
     try {

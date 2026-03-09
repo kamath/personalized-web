@@ -124,6 +124,65 @@ function extractModifications(text: string): { css: string; js: string } {
   return { css: css.trim(), js: js.trim() };
 }
 
+app.post("/api/generate-pattern", async (c) => {
+  const body = await c.req.json<{
+    description: string;
+    currentUrl: string;
+  }>();
+
+  console.log(`[Server] Generate pattern for: ${body.description}`);
+  console.log(`[Server] Current URL: ${body.currentUrl}`);
+
+  let conn: acp.ClientSideConnection | undefined;
+  let proc: ReturnType<typeof spawn> | undefined;
+
+  try {
+    const result = await ensureConnection();
+    conn = result.connection;
+    proc = agentProcess!;
+
+    const promptText = `You are a URL pattern generator. Given a description of what web pages should match and an example URL, generate a glob-style URL pattern.
+
+Rules:
+- Return ONLY the pattern, nothing else - no explanation, no markdown, no code blocks
+- Use * as a wildcard (e.g. https://github.com/*/*)
+- The pattern will be matched against full URLs
+- Be as specific as possible while still matching all described pages
+
+Example URL the user is currently on: ${body.currentUrl}
+
+Description of pages to match: ${body.description}`;
+
+    const promptResult = await result.connection.prompt({
+      sessionId: result.sessionId,
+      prompt: [{ type: "text", text: promptText }],
+    });
+
+    console.log(`[ACP] Pattern generation completed: ${promptResult.stopReason}`);
+
+    // Extract just the pattern from the response
+    let pattern = result.client.collectedText.trim();
+    // Clean up if the model wrapped it in backticks or quotes
+    pattern = pattern.replace(/^[`"']+|[`"']+$/g, "").trim();
+    // Take just the first line if multiple lines returned
+    pattern = pattern.split("\n")[0].trim();
+
+    console.log(`[Server] Generated pattern: ${pattern}`);
+
+    return c.json({ pattern });
+  } catch (err) {
+    console.error("[Server] Error:", err);
+    return c.json(
+      { error: err instanceof Error ? err.message : "Unknown error" },
+      500
+    );
+  } finally {
+    if (proc) {
+      proc.kill();
+    }
+  }
+});
+
 app.post("/api/modify", async (c) => {
   const body = await c.req.json<{
     prompt: string;
